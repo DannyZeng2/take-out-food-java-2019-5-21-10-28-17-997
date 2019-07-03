@@ -13,8 +13,90 @@ public class App {
     }
 
     public String bestCharge(List<String> inputs) {
-        //TODO: write code here
+        Map<Double,Double> priceMap = new LinkedHashMap<Double,Double>();
+        Map<Double,Double> halfPriceMap = new LinkedHashMap<Double,Double>();
 
-        return null;
+        List<String> inputItem = new ArrayList<String>();
+        List<String> salesPromotionName = new ArrayList<String>();
+
+        List<Item> itemList = itemRepository.findAll();
+        List<SalesPromotion> salesPromotionList = salesPromotionRepository.findAll();
+
+        for (String s : inputs) {
+            String[] arr = s.split(" x ");
+
+            for (Item item : itemList) {
+                if(item.getId().equals(arr[0])){
+                    priceMap.put(item.getPrice(), Double.parseDouble(arr[1]));
+                    inputItem.add(item.getName() + " x " + arr[1] + " = ");
+                    if(salesPromotionList.get(1).getRelatedItems().contains(item.getId())  ){
+                        halfPriceMap.put(item.getPrice()/2, Double.parseDouble(arr[1]));
+                        salesPromotionName.add(item.getName());
+                    }else{
+                        halfPriceMap.put(item.getPrice(), Double.parseDouble(arr[1]));
+                    }
+                }   
+            }
+      
+        }
+
+        int price_no_sales = 0;  //优惠前的总价
+        double price_50_percentage_sales = 0; 
+        double price_buy_30_save_6_sales = 0;
+        int final_price = 0;    //优惠后的总价
+
+        String itemOrder = "";  //订餐明细
+        String sale = ""; //优惠方案
+        
+        int index = 0;
+        for (Map.Entry<Double,Double> entry : priceMap.entrySet()) {
+            int price = (int)(entry.getKey() * entry.getValue());
+            inputItem.set(index, inputItem.get(index)+ price + "元");
+            price_no_sales += price;
+
+            index++;
+        }
+
+        for (Map.Entry<Double,Double> entry : halfPriceMap.entrySet()) {
+            price_50_percentage_sales += entry.getKey() * entry.getValue();
+        }
+        
+        if(price_no_sales > 30) {
+            price_buy_30_save_6_sales = price_no_sales -6*(price_no_sales/30);
+        } else{
+            price_buy_30_save_6_sales = price_no_sales;
+        }
+
+        //没有优惠
+        if(price_no_sales < 30){
+            final_price = (int)price_buy_30_save_6_sales;
+    
+            return
+            "============= 订餐明细 =============\n" +
+            String.join("\n", inputItem) + "\n" +
+            "-----------------------------------\n" +
+            "总计："+ final_price +"元\n" +
+            "===================================";
+
+        //指定菜品半价
+        } else if(price_50_percentage_sales<price_buy_30_save_6_sales) {
+            final_price = (int)price_50_percentage_sales;
+            sale = "指定菜品半价(" + String.join("，", salesPromotionName) + ")，省" + (int)(price_no_sales-price_50_percentage_sales)+"元";
+       
+        //满30减6元
+        } else {
+            final_price = (int)price_buy_30_save_6_sales;
+            sale = "满30减6元，省" + 6*(price_no_sales/30) +"元";
+        }
+
+        return  
+        "============= 订餐明细 =============\n" +
+        String.join("\n", inputItem) + "\n" +
+        "-----------------------------------\n" +
+        "使用优惠:\n" +
+        sale +"\n"+
+        "-----------------------------------\n" +
+        "总计："+ final_price +"元\n" +
+        "===================================";
     }
 }
